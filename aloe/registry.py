@@ -308,7 +308,7 @@ class StepDict(object):
                 matches[regex] = (matched,func)
 
         if matches:
-            sorted_regex = sorted(matches.items(),key = lambda x : (x[1][0].lastindex,len(x[0].pattern)))
+            sorted_regex = sorted(matches.items(),key = lambda x : (x[1][0].lastindex or 0 ,len(x[0].pattern) or 0 ))
             mregex,(matched,func) = sorted_regex[-1]
             if len(sorted_regex) > 1:
                 print("Picked Step",mregex, "From " , len(sorted_regex) ," duplicates steps loaded: ", sorted_regex)

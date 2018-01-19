@@ -27,7 +27,7 @@ from gherkin.token_scanner import TokenScanner as BaseTokenScanner
 from aloe import strings
 from aloe.exceptions import AloeSyntaxError
 from aloe.utils import memoizedproperty
-from aloe.registry import STEP_REGISTRY, CALLBACK_REGISTRY, step
+from aloe.registry import step
 
 # Pylint can't figure out methods vs. properties and which classes are
 # abstract
@@ -35,6 +35,7 @@ from aloe.registry import STEP_REGISTRY, CALLBACK_REGISTRY, step
 
 LOADED_FEATURES = set()
 STEP_PREFIX = r'(?:Given|And|Then|When) '
+
 
 class TokenScanner(BaseTokenScanner):
     """Gherkin 3 token scanner that explicitly takes a string or a filename."""
@@ -552,16 +553,15 @@ class Scenario(HeaderNode, TaggedNode, StepContainer):
             )
             self.regex_name = self.name
 
-            
             @step(STEP_PREFIX + self.name)
             def step_scenario(self, *args, **kwargs):
                 """ Create a step that executes the scenario steps """
-                for step in steps:
+                for st in steps:
                     teststep = copy(self)
                     teststep.depth += 1
-                    teststep.sentence = step.sentence
-                    teststep.table = step.table
-                    teststep.multiline = step.multiline
+                    teststep.sentence = st.sentence
+                    teststep.table = st.table
+                    teststep.multiline = st.multiline
                     if kwargs != {}:
                         subs = teststep.resolve_substitutions(kwargs)
                     if args != ():
@@ -573,8 +573,6 @@ class Scenario(HeaderNode, TaggedNode, StepContainer):
                                        *definition['args'],
                                        **definition['kwargs'])
 
-
-            # STEP_REGISTRY.load(STEP_PREFIX + self.name, step_scenario)
             sub = re.sub(r'\([^)]*\)', '<%s>', self.name)
             if sub.count("<%s>") == len(keys):
                 self.name = sub % keys
@@ -585,25 +583,24 @@ class Scenario(HeaderNode, TaggedNode, StepContainer):
                         line=self.line,
                         col=self.col,
                         klass=self.__class__.__name__,
-                        sub = sub, 
-                        keys = keys ))
+                        sub=sub,
+                        keys=keys))
 
         if self.outline_header is None:
             @step(STEP_PREFIX + self.name)
             def step_scenario(self, *args, **kwargs):
                 """ Create a step that executes the scenario steps """
-                for step in steps:
+                for st in steps:
                     teststep = copy(self)
                     teststep.depth += 1
-                    teststep.sentence = step.sentence
-                    teststep.table = step.table
-                    teststep.multiline = step.multiline
+                    teststep.sentence = st.sentence
+                    teststep.table = st.table
+                    teststep.multiline = st.multiline
                     definition = self.test.prepare_step(teststep)
                     definition['func'](definition['step'],
                                        *definition['args'],
                                        **definition['kwargs'])
 
-            # STEP_REGISTRY.load(STEP_PREFIX + self.name, step_scenario)
 
     indent = 2
 
@@ -818,24 +815,22 @@ class Feature(HeaderNode, TaggedNode):
 
         imports = []
         with open(filename) as f:
-            is_import= True
+            is_import = True
             while is_import:
                 line = f.readline()
-                if re.match(r'^Import:.*',line):
+                if re.match(r'^Import:.*', line):
                     imports.append(line)
                 else:
                     is_import = False
-            notimports = f.read();
+            notimports = f.read()
 
-        for v in  list(imports):
+        for v in list(imports):
             # load features
-            import_name = os.path.dirname(filename) +'/' + v[7:].strip() + '.feature'
-            if not v in LOADED_FEATURES:
+            import_name = os.path.dirname(filename) + '/' + v[7:].strip() + '.feature'
+            if v not in LOADED_FEATURES:
                 LOADED_FEATURES.add(Feature.from_file(import_name))
 
-
-
-        return cls.parse(string=line + notimports , filename = filename,language=language)
+        return cls.parse(string=line + notimports, filename=filename, language=language)
 
     @property
     def description(self):
